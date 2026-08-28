@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thiết kế đề kiểm tra theo CV 7991</title>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#11151d; --panel2:#161b26; --line:#232938;
+    --text:#e7eaf0; --muted:#8b93a7; --accent:#3aa6ff; --accent2:#ffb454;
+    --good:#3ddc97; --bad:#ff6b6b;
+    --serif:"Source Serif 4","Georgia",serif; --sans:"Inter",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;}
+  header{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  header h1{font-family:var(--serif);font-size:1.25rem;margin:0;font-weight:600;letter-spacing:.2px;}
+  header .sub{color:var(--muted);font-size:.78rem;margin-top:2px;}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;}
+  button{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:7px 12px;font-size:.82rem;cursor:pointer;font-family:var(--sans);}
+  button:hover{border-color:var(--accent);}
+  button.primary{background:var(--accent);color:#06131f;border-color:var(--accent);font-weight:600;}
+  button.danger{color:var(--bad);}
+  button.small{padding:4px 8px;font-size:.74rem;}
+  nav{display:flex;gap:2px;padding:0 22px;border-bottom:1px solid var(--line);overflow-x:auto;}
+  nav button{background:none;border:none;border-bottom:2px solid transparent;border-radius:0;padding:11px 14px;color:var(--muted);white-space:nowrap;}
+  nav button.active{color:var(--text);border-bottom-color:var(--accent);font-weight:600;}
+  main{padding:20px 22px 80px;max-width:1180px;margin:0 auto;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:16px;}
+  .card h2{font-family:var(--serif);font-size:1rem;margin:0 0 12px;color:var(--accent2);}
+  label{display:block;font-size:.74rem;color:var(--muted);margin-bottom:4px;}
+  input[type=text],input[type=number],textarea,select{
+    width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:6px;color:var(--text);
+    padding:7px 9px;font-size:.85rem;font-family:var(--sans);
+  }
+  textarea{resize:vertical;min-height:46px;}
+  .grid{display:grid;gap:10px;}
+  .grid.cols2{grid-template-columns:1fr 1fr;}
+  .grid.cols3{grid-template-columns:1fr 1fr 1fr;}
+  .grid.cols4{grid-template-columns:1fr 1fr 1fr 1fr;}
+  table{width:100%;border-collapse:collapse;font-size:.8rem;}
+  th,td{border:1px solid var(--line);padding:6px 8px;text-align:center;vertical-align:middle;}
+  th{background:var(--panel2);color:var(--muted);font-weight:600;font-size:.72rem;text-transform:uppercase;letter-spacing:.3px;}
+  td.left{text-align:left;}
+  .topic-block{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px;background:var(--panel2);}
+  .topic-head{display:flex;gap:8px;align-items:center;margin-bottom:10px;}
+  .topic-head input{flex:1;font-weight:600;}
+  .level-row{display:grid;grid-template-columns:70px 1fr;gap:8px;margin-bottom:8px;align-items:start;}
+  .level-tag{padding:6px 0;font-size:.74rem;font-weight:700;border-radius:6px;text-align:center;align-self:start;}
+  .tag-NB{background:#1c3a2c;color:var(--good);}
+  .tag-TH{background:#2c3a1c;color:var(--accent2);}
+  .tag-VD{background:#2c1c3a;color:#c98bff;}
+  .alloc-row{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;}
+  .alloc-cell{display:flex;flex-direction:column;gap:2px;width:96px;}
+  .alloc-cell span{font-size:.65rem;color:var(--muted);}
+  .alloc-cell input{padding:5px;text-align:center;}
+  .alloc-cell input:disabled{opacity:.25;cursor:not-allowed;}
+  .pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.7rem;font-weight:700;}
+  .pill.ok{background:#13301f;color:var(--good);}
+  .pill.bad{background:#3a1414;color:var(--bad);}
+  .muted{color:var(--muted);}
+  .right{text-align:right;}
+  .flex{display:flex;gap:8px;align-items:center;}
+  .between{justify-content:space-between;}
+  .qslot{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px;background:var(--panel2);}
+  .qslot .meta{font-size:.7rem;color:var(--muted);margin-bottom:6px;}
+  .ans-line{display:grid;grid-template-columns:120px 1fr;gap:8px;align-items:center;margin-top:4px;}
+  .toast{position:fixed;bottom:18px;right:18px;background:var(--panel2);border:1px solid var(--accent);color:var(--text);padding:10px 16px;border-radius:8px;font-size:.82rem;z-index:50;box-shadow:0 4px 18px rgba(0,0,0,.4);}
+  @media print{
+    body{background:#fff;color:#000;}
+    header,nav,.toolbar,.no-print,button{display:none !important;}
+    .card{border-color:#999;background:#fff;}
+    th{background:#eee;color:#000;}
+    .pill{display:none;}
+  }
+  @media (max-width:720px){
+    .grid.cols2,.grid.cols3,.grid.cols4{grid-template-columns:1fr;}
+    .level-row{grid-template-columns:1fr;}
+  }
+  #authScreen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:200;}
+  #authBox{width:100%;max-width:340px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:26px 24px;text-align:center;}
+  #authBox h2{font-family:var(--serif);font-size:1.1rem;margin:0 0 4px;color:var(--text);}
+  #authBox p.sub{color:var(--muted);font-size:.78rem;margin:0 0 18px;}
+  #authBox input{margin-bottom:10px;}
+  #authBox button.primary{width:100%;padding:9px;margin-top:4px;}
+  #authMsg{font-size:.78rem;margin-top:12px;min-height:16px;}
+  #authMsg.err{color:var(--bad);}
+  #authMsg.ok{color:var(--good);}
+  #authMsg.warn{color:var(--accent2);}
+  #logoutBtn{margin-left:4px;}
+</style>
+</head>
+<body>
+
+<div id="authScreen">
+  <div id="authBox">
+    <h2>Thiết kế đề kiểm tra</h2>
+    <p class="sub">Đăng nhập để sử dụng</p>
+    <input type="text" id="authEmail" placeholder="Email đăng nhập" autocomplete="username">
+    <input type="password" id="authPass" placeholder="Mật khẩu" autocomplete="current-password">
+    <button class="primary" id="authBtn" onclick="doLogin()">Đăng nhập</button>
+    <div id="authMsg"></div>
+  </div>
+</div>
+
+<div id="appContainer" style="display:none">
+<header>
+  <div>
+    <h1 id="examTitleHead">Thiết kế đề kiểm tra</h1>
+    <div class="sub">Ma trận – Bản đặc tả – Đề – Đáp án theo Công văn 7991/BGDĐT-GDTrH · áp dụng mọi môn</div>
+  </div>
+  <div class="toolbar no-print">
+    <button onclick="newExam()">+ Đề mới</button>
+    <button onclick="openLoadDialog()">Mở đề đã lưu</button>
+    <button class="primary" onclick="saveExam()">Lưu đề</button>
+    <button onclick="exportBackupJson()">⬇️ Xuất file sao lưu</button>
+    <button onclick="document.getElementById('import-json-input').click()">⬆️ Nhập file sao lưu</button>
+    <input type="file" id="import-json-input" accept=".json" style="display:none" onchange="importBackupJson(event)">
+    <button class="primary" onclick="exportAllWord()">📄 Xuất Word (Toàn bộ)</button>
+    <button onclick="window.print()">In / Xuất PDF</button>
+    <button id="logoutBtn" onclick="doLogout()">Đăng xuất</button>
+  </div>
+</header>
+
+<nav id="tabBar"></nav>
+<main id="mainArea"></main>
+</div>
+
+<script>
+/* ---------------- FIREBASE AUTH + LICENSE CHECK ---------------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyBmn54Z8ZZ2lGDQexVWyJiLD4K2h7jf6Iw",
+  authDomain: "de-kiem-tra-9aba7.firebaseapp.com",
+  databaseURL: "https://de-kiem-tra-9aba7-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "de-kiem-tra-9aba7",
+  storageBucket: "de-kiem-tra-9aba7.firebasestorage.app",
+  messagingSenderId: "1816067741",
+  appId: "1:1816067741:web:945d940ac4fe89d1cc9e74"
+};
+firebase.initializeApp(firebaseConfig);
+const fbAuth = firebase.auth();
+const fbDb = firebase.firestore();
+let appRendered = false;
+
+function setAuthMsg(text, cls){
+  const el = document.getElementById('authMsg');
+  el.textContent = text || '';
+  el.className = cls || '';
+}
+
+function doLogin(){
+  const email = document.getElementById('authEmail').value.trim();
+  const pass = document.getElementById('authPass').value;
+  if(!email || !pass){ setAuthMsg('Vui lòng nhập đầy đủ email và mật khẩu.', 'err'); return; }
+  document.getElementById('authBtn').disabled = true;
+  setAuthMsg('Đang đăng nhập...', '');
+  fbAuth.signInWithEmailAndPassword(email, pass)
+    .catch(err=>{
+      document.getElementById('authBtn').disabled = false;
+      let msg = 'Đăng nhập thất bại.';
+      if(err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found'){
+        msg = 'Sai email hoặc mật khẩu.';
+      } else if(err.code === 'auth/too-many-requests'){
+        msg = 'Bạn thử sai quá nhiều lần, vui lòng đợi rồi thử lại.';
+      }
+      setAuthMsg(msg, 'err');
+    });
+}
+
+function doLogout(){
+  fbAuth.signOut();
+}
+
+async function checkLicenseAndEnter(user){
+  setAuthMsg('Đang kiểm tra tài khoản...', '');
+  try{
+    const doc = await fbDb.collection('licenses').doc(user.uid).get();
+    if(!doc.exists){
+      setAuthMsg('Tài khoản chưa được cấp quyền sử dụng. Liên hệ người bán để được hỗ trợ.', 'err');
+      fbAuth.signOut();
+      return;
+    }
+    const data = doc.data();
+    const hetHan = data.ngayHetHan ? new Date(data.ngayHetHan) : null;
+    const active = data.active !== false;
+    if(!active || !hetHan || isNaN(hetHan.getTime()) || hetHan.getTime() < Date.now()){
+      const ngayStr = hetHan && !isNaN(hetHan.getTime()) ? hetHan.toLocaleDateString('vi-VN') : '';
+      setAuthMsg('Tài khoản đã hết hạn sử dụng' + (ngayStr?` (${ngayStr})`:'') + '. Vui lòng liên hệ để gia hạn.', 'err');
+      fbAuth.signOut();
+      return;
+    }
+    // Hợp lệ -> vào app
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('appContainer').style.display = '';
+    if(!appRendered){ appRendered = true; render(); }
+  }catch(e){
+    setAuthMsg('Không kiểm tra được tài khoản. Kiểm tra kết nối mạng và thử lại.', 'err');
+    fbAuth.signOut();
+  }
+}
+
+fbAuth.onAuthStateChanged(user=>{
+  document.getElementById('authBtn').disabled = false;
+  if(user){
+    checkLicenseAndEnter(user);
+  }else{
+    document.getElementById('authScreen').style.display = 'flex';
+    document.getElementById('appContainer').style.display = 'none';
+  }
+});
+/* ---------------- STATE ---------------- */
+const LEVELS = ["NB","TH","VD"];
+const LEVEL_LABEL = {NB:"Biết", TH:"Hiểu", VD:"Vận dụng"};
+const LEVEL_VERBS = {
+  NB: ["Nêu được","Trình bày được","Kể tên được","Liệt kê được","Nhận biết được","Phát biểu được","Mô tả được","Xác định được","Chỉ ra được"],
+  TH: ["Giải thích được","Phân tích được","So sánh được","Phân loại được","Minh họa được","Tóm tắt được","Diễn giải được","Lý giải được","Phân biệt được"],
+  VD: ["Vận dụng được","Giải quyết được","Đề xuất được","Thực hiện được","Tính toán được","Thiết kế được","Đánh giá được","Liên hệ thực tế để giải thích","Lập kế hoạch để"]
+};
+
+function defaultState(){
+  return {
+    examKey: "de_" + Date.now(),
+    info: {
+      ten: "Đề kiểm tra giữa kỳ", mon: "Khoa học tự nhiên", lop: "7",
+      thoiGian: "60-90 phút", loai: "Giữa kỳ",
+      tyLeNB: 40, tyLeTH: 30, tyLeVD: 30
+    },
+    formats: [
+      {id:"tnkq", name:"Nhiều lựa chọn", group:"TNKQ", kind:"cau", tongSoCau:12, tongDiem:3, soYMoiCau:1, choLevels:["NB","TH","VD"]},
+      {id:"dungsai", name:"Đúng – Sai", group:"TNKQ", kind:"dung_sai", tongSoCau:2, tongDiem:2, soYMoiCau:4, choLevels:["NB","TH","VD"]},
+      {id:"dienso", name:"Trả lời ngắn", group:"TNKQ", kind:"cau", tongSoCau:4, tongDiem:2, soYMoiCau:1, choLevels:["NB","TH","VD"]},
+      {id:"tuluan", name:"Tự luận", group:"TL", kind:"cau", tongSoCau:3, tongDiem:3, soYMoiCau:1, choLevels:["TH","VD"]}
+    ],
+    topics: [
+      {id:"t1", name:"Chủ đề 1", tietHoc:1, levels:{
+        NB:{yccd:"", alloc:{}},
+        TH:{yccd:"", alloc:{}},
+        VD:{yccd:"", alloc:{}}
+      }}
+    ],
+    // câu hỏi thực tế: key = topicId|level|formatId|index -> {noidung, dapan}
+    questions: {}
+  };
+}
+
+let state = defaultState();
+let activeTab = "setup";
+
+/* ---------------- HELPERS ---------------- */
+function diemMoiCau(f){
+  if(f.tongSoCau<=0) return 0;
+  if(f.kind==="dung_sai"){
+    return f.tongDiem/(f.tongSoCau*f.soYMoiCau);
+  }
+  return f.tongDiem/f.tongSoCau;
+}
+// Điểm thực nhận được cho 1 CÂU (không phải 1 ý) - dùng để cộng tổng điểm theo số câu đã phân bổ
+function diemMoiCauThuc(f){
+  if(f.tongSoCau<=0) return 0;
+  return f.tongDiem/f.tongSoCau;
+}
+function fmt(n){ return Math.round(n*1000)/1000; }
+
+function sumAllocForFormat(fid){
+  let s=0;
+  state.topics.forEach(t=>LEVELS.forEach(l=>{ s += (t.levels[l].alloc[fid]||0); }));
+  return s;
+}
+function sumDiemForLevel(level){
+  let s=0;
+  state.formats.forEach(f=>{
+    const n = (function(){let x=0; state.topics.forEach(t=>{x+= (t.levels[level].alloc[f.id]||0);}); return x;})();
+    s += n * diemMoiCauThuc(f);
+  });
+  return s;
+}
+function tongDiemDe(){
+  return state.formats.reduce((s,f)=>s+f.tongDiem,0);
+}
+function toast(msg){
+  const d=document.createElement('div'); d.className='toast'; d.textContent=msg;
+  document.body.appendChild(d); setTimeout(()=>d.remove(),2200);
+}
+
+/* ---------------- PERSISTENCE ---------------- */
+// Lớp lưu trữ thống nhất: ưu tiên window.storage (khi chạy trong artifact Claude),
+// tự động chuyển sang localStorage khi mở file .html độc lập ngoài trình duyệt.
+const hasClaudeStorage = (typeof window!=='undefined' && window.storage && typeof window.storage.get==='function');
+const LS_PREFIX = 'dekiemtra_';
+const localStore = {
+  async get(key){
+    const raw = localStorage.getItem(LS_PREFIX+key);
+    if(raw===null) throw new Error('not found');
+    return { key, value: raw };
+  },
+  async set(key, value){
+    localStorage.setItem(LS_PREFIX+key, value);
+    return { key, value };
+  }
+};
+const store = hasClaudeStorage ? window.storage : localStore;
+
+async function saveExam(){
+  try{
+    const list = await safeGet('exam_list', []);
+    if(!list.includes(state.examKey)) list.push(state.examKey);
+    await store.set('exam_list', JSON.stringify(list));
+    await store.set(state.examKey, JSON.stringify(state));
+    toast("Đã lưu: " + state.info.ten + (hasClaudeStorage?'':' (lưu trên trình duyệt này)'));
+  }catch(e){ toast("Lỗi lưu: "+e.message); }
+}
+async function safeGet(key, fallback){
+  try{
+    const r = await store.get(key);
+    return r ? JSON.parse(r.value) : fallback;
+  }catch(e){ return fallback; }
+}
+async function openLoadDialog(){
+  const list = await safeGet('exam_list', []);
+  if(list.length===0){ toast("Chưa có đề nào được lưu."); return; }
+  const items = [];
+  for(const k of list){
+    const d = await safeGet(k,null);
+    if(d) items.push({key:k, label:`${d.info.ten} – ${d.info.mon} lớp ${d.info.lop}`});
+  }
+  const choice = prompt("Nhập số thứ tự đề muốn mở:\n" + items.map((it,i)=>`${i+1}. ${it.label}`).join("\n"));
+  const idx = parseInt(choice)-1;
+  if(items[idx]){
+    const d = await safeGet(items[idx].key, null);
+    if(d){ state = d; render(); toast("Đã mở: "+d.info.ten); }
+  }
+}
+function newExam(){
+  if(confirm("Tạo đề mới? (đề hiện tại nếu chưa lưu sẽ mất)")){
+    state = defaultState(); render();
+  }
+}
+function exportBackupJson(){
+  const filename = 'sao_luu_' + (state.info.ten||'de_kiem_tra').replace(/\s+/g,'_') + '.json';
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('✓ Đã tải file sao lưu: ' + filename);
+}
+function importBackupJson(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    try{
+      const parsed = JSON.parse(e.target.result);
+      if(!parsed || !parsed.info){ toast('File sao lưu không hợp lệ.'); return; }
+      state = parsed;
+      render();
+      toast('✓ Đã nhập lại đề: ' + (state.info.ten||''));
+    }catch(err){
+      toast('Lỗi đọc file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+/* ---------------- RENDER: TABS ---------------- */
+const TABS = [
+  {id:"setup", label:"1. Thiết lập"},
+  {id:"topics", label:"2. Chủ đề & Phân bổ"},
+  {id:"matrix", label:"3. Ma trận"},
+  {id:"spec", label:"4. Bản đặc tả"},
+  {id:"exam", label:"5. Đề thi"},
+  {id:"answer", label:"6. Đáp án"}
+];
+function renderTabs(){
+  const nav = document.getElementById('tabBar');
+  nav.innerHTML = TABS.map(t=>`<button class="${t.id===activeTab?'active':''}" onclick="switchTab('${t.id}')">${t.label}</button>`).join('');
+}
+function switchTab(id){ activeTab=id; render(); }
+
+/* ---------------- RENDER: MAIN ---------------- */
+function render(){
+  document.getElementById('examTitleHead').textContent = state.info.ten || "Thiết kế đề kiểm tra";
+  renderTabs();
+  const m = document.getElementById('mainArea');
+  if(activeTab==="setup") m.innerHTML = viewSetup();
+  if(activeTab==="topics") m.innerHTML = viewTopics();
+  if(activeTab==="matrix") m.innerHTML = viewMatrix();
+  if(activeTab==="spec") m.innerHTML = viewSpec();
+  if(activeTab==="exam") m.innerHTML = viewExam();
+  if(activeTab==="answer") m.innerHTML = viewAnswer();
+}
+
+/* ---------------- TAB 1: SETUP ---------------- */
+function viewSetup(){
+  const i = state.info;
+  let html = `<div class="card"><h2>Thông tin đề kiểm tra</h2>
+  <div class="grid cols3">
+    <div><label>Tên đề</label><input type="text" value="${esc(i.ten)}" oninput="state.info.ten=this.value;document.getElementById('examTitleHead').textContent=this.value"></div>
+    <div><label>Môn học</label><input type="text" value="${esc(i.mon)}" oninput="state.info.mon=this.value"></div>
+    <div><label>Khối lớp</label><input type="text" value="${esc(i.lop)}" oninput="state.info.lop=this.value"></div>
+    <div><label>Thời gian làm bài</label><input type="text" value="${esc(i.thoiGian)}" oninput="state.info.thoiGian=this.value"></div>
+    <div><label>Loại kiểm tra</label><input type="text" value="${esc(i.loai)}" oninput="state.info.loai=this.value"></div>
+  </div></div>
+
+  <div class="card"><h2>Tỉ lệ mức độ nhận thức mục tiêu (% điểm)</h2>
+  <div class="grid cols3">
+    <div><label>Nhận biết (%)</label><input type="number" value="${i.tyLeNB}" oninput="state.info.tyLeNB=+this.value;render()"></div>
+    <div><label>Thông hiểu (%)</label><input type="number" value="${i.tyLeTH}" oninput="state.info.tyLeTH=+this.value;render()"></div>
+    <div><label>Vận dụng (%)</label><input type="number" value="${i.tyLeVD}" oninput="state.info.tyLeVD=+this.value;render()"></div>
+  </div>
+  <p class="muted" style="margin-top:8px;font-size:.78rem;">Tổng phải bằng 100%. Hiện tại: ${i.tyLeNB+i.tyLeTH+i.tyLeVD}%</p>
+  </div>
+
+  <div class="card"><h2>Hình thức câu hỏi (thêm/xóa/sửa tùy môn)</h2>
+  <table><thead><tr>
+    <th>Tên hình thức</th><th>Nhóm</th><th>Kiểu</th><th>Tổng số câu</th><th>Số ý/câu</th><th>Tổng điểm phần</th><th>Điểm/câu (ý)</th>
+    <th>Áp dụng mức độ</th><th></th>
+  </tr></thead><tbody>`;
+  state.formats.forEach((f,idx)=>{
+    html += `<tr>
+      <td class="left"><input type="text" value="${esc(f.name)}" oninput="state.formats[${idx}].name=this.value"></td>
+      <td><select onchange="state.formats[${idx}].group=this.value">
+        <option value="TNKQ" ${f.group==='TNKQ'?'selected':''}>TNKQ</option>
+        <option value="TL" ${f.group==='TL'?'selected':''}>Tự luận</option>
+      </select></td>
+      <td><select onchange="state.formats[${idx}].kind=this.value;render()">
+        <option value="cau" ${f.kind==='cau'?'selected':''}>Theo câu</option>
+        <option value="dung_sai" ${f.kind==='dung_sai'?'selected':''}>Đúng/Sai (nhiều ý)</option>
+      </select></td>
+      <td><input type="number" style="width:60px" value="${f.tongSoCau}" oninput="state.formats[${idx}].tongSoCau=+this.value;render()"></td>
+      <td><input type="number" style="width:55px" value="${f.soYMoiCau}" ${f.kind!=='dung_sai'?'disabled':''} oninput="state.formats[${idx}].soYMoiCau=+this.value;render()"></td>
+      <td><input type="number" step="0.25" style="width:65px" value="${f.tongDiem}" oninput="state.formats[${idx}].tongDiem=+this.value;render()"></td>
+      <td>${fmt(diemMoiCau(f))}</td>
+      <td>${LEVELS.map(l=>`<label style="display:inline-flex;gap:3px;align-items:center;margin-right:6px;font-size:.72rem;"><input type="checkbox" style="width:auto" ${f.choLevels.includes(l)?'checked':''} onchange="toggleFormatLevel(${idx},'${l}',this.checked)">${l}</label>`).join('')}</td>
+      <td><button class="small danger" onclick="removeFormat(${idx})">Xóa</button></td>
+    </tr>`;
+  });
+  html += `</tbody></table>
+  <div style="margin-top:10px;"><button onclick="addFormat()">+ Thêm hình thức câu hỏi</button></div>
+  <p class="muted" style="margin-top:8px;">Tổng điểm toàn đề: <b>${tongDiemDe()}</b> điểm</p>
+  </div>`;
+
+  // Card API Key - Gemini (hỗ trợ nhiều key, tự xoay vòng khi hết hạn mức)
+  const savedKeysRaw = localStorage.getItem('gemini_api_key') || '';
+  const keyList = savedKeysRaw.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);
+  const keyStatus = keyList.length
+    ? `<span style="color:#4caf50">✓ Đã lưu ${keyList.length} key (${keyList.map(k=>k.slice(0,6)+'…').join(', ')})</span>`
+    : `<span style="color:#f59e0b">⚠ Chưa có key — tính năng AI soạn đề sẽ không hoạt động</span>`;
+  html += `<div class="card" id="card-apikey">
+  <h2>🔑 Google Gemini API Key <span style="font-size:.75rem;font-weight:normal;color:#888">(miễn phí — cần để dùng AI soạn câu hỏi khi mở file ngoài Claude.ai)</span></h2>
+  <p class="muted" style="margin-bottom:10px;">Lấy key miễn phí tại <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com</a> → đăng nhập Gmail → <b>Get API key → Create API key</b>. Có thể tạo nhiều key từ nhiều tài khoản Google khác nhau, mỗi dòng 1 key — hết hạn mức key này, app tự chuyển sang key kế tiếp. Key chỉ lưu trên máy này.</p>
+  <textarea id="apikey-input" placeholder="AIza... (mỗi dòng 1 key nếu có nhiều key)" rows="3" style="width:100%;font-family:monospace;font-size:.85rem;">${esc(savedKeysRaw)}</textarea>
+  <div class="flex" style="gap:10px;align-items:center;margin-top:8px;">
+    <button class="primary" onclick="saveApiKey()">💾 Lưu key</button>
+    ${keyList.length ? `<button class="danger small" onclick="clearApiKey()">Xóa hết</button>` : ''}
+  </div>
+  <p style="margin-top:8px;font-size:.82rem;">${keyStatus}</p>
+  </div>`;
+
+  return html;
+}
+function saveApiKey(){
+  const val = document.getElementById('apikey-input').value.trim();
+  if(!val){ toast("Vui lòng nhập API key."); return; }
+  localStorage.setItem('gemini_api_key', val);
+  activeKeyIndex = 0;
+  const n = val.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean).length;
+  toast(`✓ Đã lưu ${n} key Gemini!`);
+  render();
+}
+function clearApiKey(){
+  if(!confirm("Xóa (các) API key đã lưu?")) return;
+  localStorage.removeItem('gemini_api_key');
+  activeKeyIndex = 0;
+  toast("Đã xóa API key.");
+  render();
+}
+function getApiKeys(){
+  return (localStorage.getItem('gemini_api_key')||'').split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);
+}
+function getApiKey(){
+  const keys = getApiKeys();
+  if(!keys.length) return '';
+  if(activeKeyIndex >= keys.length) activeKeyIndex = 0;
+  return keys[activeKeyIndex];
+}
+function rotateApiKey(){
+  const keys = getApiKeys();
+  if(activeKeyIndex < keys.length - 1){
+    activeKeyIndex++;
+    return true;
+  }
+  return false;
+}
+function toggleFormatLevel(idx,level,checked){
+  const f = state.formats[idx];
+  if(checked){ if(!f.choLevels.includes(level)) f.choLevels.push(level); }
+  else { f.choLevels = f.choLevels.filter(l=>l!==level); }
+  render();
+}
+function addFormat(){
+  state.formats.push({id:"f"+Date.now(), name:"Hình thức mới", kind:"cau", tongSoCau:4, tongDiem:1, soYMoiCau:1, choLevels:["NB","TH","VD"]});
+  render();
+}
+function removeFormat(idx){
+  if(!confirm("Xóa hình thức này? Các phân bổ liên quan sẽ mất.")) return;
+  const fid = state.formats[idx].id;
+  state.topics.forEach(t=>LEVELS.forEach(l=>{ delete t.levels[l].alloc[fid]; }));
+  state.formats.splice(idx,1); render();
+}
+
+/* ---------------- TAB 2: TOPICS & ALLOCATION ---------------- */
+function allocateInts(total, weights){
+  const sumW = weights.reduce((a,b)=>a+b,0);
+  if(sumW<=0 || total<=0) return weights.map(()=>0);
+  const raw = weights.map(w=> total*Math.max(0,w)/sumW);
+  const floors = raw.map(Math.floor);
+  let remainder = Math.round(total - floors.reduce((a,b)=>a+b,0));
+  const order = raw.map((r,i)=>({i,frac:r-Math.floor(r)})).sort((a,b)=>b.frac-a.frac);
+  const result = floors.slice();
+  for(let k=0;k<remainder && order.length>0;k++){ result[order[k%order.length].i]++; }
+  return result;
+}
+function tryMoveOneUnit(fromTi, toTi){
+  // Tìm 1 (hình thức, mức độ) mà fromTi đang có ít nhất 1 câu, ưu tiên đơn vị điểm NHỎ NHẤT
+  // để việc tinh chỉnh được mịn, tránh lệch quá tay.
+  let best=null, bestVal=Infinity;
+  state.formats.forEach(f=>{
+    f.choLevels.forEach(l=>{
+      const cur = state.topics[fromTi].levels[l].alloc[f.id]||0;
+      if(cur>0){
+        const d = diemMoiCauThuc(f);
+        if(d < bestVal){ bestVal=d; best={fid:f.id, l}; }
+      }
+    });
+  });
+  if(!best) return false;
+  state.topics[fromTi].levels[best.l].alloc[best.fid] -= 1;
+  state.topics[toTi].levels[best.l].alloc[best.fid] = (state.topics[toTi].levels[best.l].alloc[best.fid]||0)+1;
+  return true;
+}
+
+// Tính số câu mỗi (hình thức × mức độ) ở cấp TOÀN ĐỀ sao cho % điểm mỗi mức độ
+// (Biết/Hiểu/Vận dụng) khớp đúng tỉ lệ mục tiêu, có tính đến việc một số hình thức
+// (vd. Tự luận) không áp dụng cho mọi mức độ.
+function computeGlobalLevelCounts(){
+  let counts = {};
+  state.formats.forEach(f=>{
+    counts[f.id] = {NB:0,TH:0,VD:0};
+    const levels = f.choLevels;
+    if(levels.length===0) return;
+    const weights = levels.map(l=> +state.info['tyLe'+l] || 1);
+    const c = allocateInts(f.tongSoCau, weights);
+    levels.forEach((l,idx)=>{ counts[f.id][l] = c[idx]; });
+  });
+
+  const total = tongDiemDe();
+  const target = {
+    NB: total*(+state.info.tyLeNB||0)/100,
+    TH: total*(+state.info.tyLeTH||0)/100,
+    VD: total*(+state.info.tyLeVD||0)/100
+  };
+  function globalLevel(l){
+    let s=0; state.formats.forEach(f=>{ s += (counts[f.id][l]||0)*diemMoiCauThuc(f); });
+    return s;
+  }
+
+  for(let iter=0; iter<3000; iter++){
+    const G = {NB:globalLevel('NB'), TH:globalLevel('TH'), VD:globalLevel('VD')};
+    const dev = {NB:G.NB-target.NB, TH:G.TH-target.TH, VD:G.VD-target.VD};
+    const sorted = LEVELS.slice().sort((a,b)=>dev[b]-dev[a]); // thừa nhiều -> thiếu nhiều
+    if(dev[sorted[0]] - dev[sorted[sorted.length-1]] <= 0.05) break; // đã đủ sát
+
+    let moved=false;
+    outer:
+    for(let i=0;i<sorted.length;i++){
+      for(let j=sorted.length-1;j>i;j--){
+        const lOver=sorted[i], lUnder=sorted[j];
+        if(dev[lOver]-dev[lUnder] <= 0.05) continue;
+        const candidates = state.formats
+          .filter(f=> f.choLevels.includes(lOver) && f.choLevels.includes(lUnder) && counts[f.id][lOver]>0)
+          .sort((x,y)=> diemMoiCauThuc(x)-diemMoiCauThuc(y)); // ưu tiên đơn vị nhỏ để tinh chỉnh mịn
+        if(candidates.length>0){
+          const f = candidates[0];
+          counts[f.id][lOver] -= 1;
+          counts[f.id][lUnder] += 1;
+          moved = true;
+          break outer;
+        }
+      }
+    }
+    if(!moved) break; // không còn cách chuyển khả thi (do giới hạn hình thức/mức độ)
+  }
+  return counts;
+}
+
+function autoAllocate(){
+  if(state.topics.length===0){ toast("Cần ít nhất 1 chủ đề."); return; }
+  state.topics.forEach(t=>LEVELS.forEach(l=>{ t.levels[l].alloc = {}; }));
+
+  // Bước 1: tính số câu mỗi (hình thức × mức độ) ở cấp toàn đề (đúng % Biết/Hiểu/Vận dụng),
+  // sau đó chia cho từng chủ đề theo tỉ lệ số tiết.
+  const globalCounts = computeGlobalLevelCounts();
+  state.formats.forEach(f=>{
+    f.choLevels.forEach(l=>{
+      const C = globalCounts[f.id][l] || 0;
+      const tWeights = state.topics.map(t=> (+t.tietHoc||0) || 0.001);
+      const tCounts = allocateInts(C, tWeights);
+      state.topics.forEach((t,ti)=>{
+        t.levels[l].alloc[f.id] = (t.levels[l].alloc[f.id]||0) + tCounts[ti];
+      });
+    });
+  });
+
+  // Bước 2: tinh chỉnh - chuyển từng câu giữa các chủ đề (cùng hình thức/mức độ, không phá tổng
+  // số câu mỗi hình thức và tổng điểm mỗi mức độ) để điểm thực tế mỗi chủ đề lệch tối đa 0,25đ
+  // so với điểm gợi ý theo số tiết.
+  const tongTiet = tongTietHoc();
+  const total = tongDiemDe();
+  const targets = state.topics.map(t=> tongTiet? total*((+t.tietHoc||0)/tongTiet) : 0);
+  const TOLERANCE = 0.25;
+
+  for(let iter=0; iter<800; iter++){
+    const devs = state.topics.map((t,i)=> diemDaPhanBoTopic(t) - targets[i]);
+    let maxAbs=0, maxIdx=-1;
+    devs.forEach((d,i)=>{ if(Math.abs(d)>Math.abs(maxAbs)){ maxAbs=d; maxIdx=i; } });
+    if(Math.abs(maxAbs) <= TOLERANCE) break;
+    let moved;
+    if(maxAbs > 0){
+      const toIdx = devs.indexOf(Math.min(...devs));
+      moved = (toIdx!==maxIdx) ? tryMoveOneUnit(maxIdx, toIdx) : false;
+    } else {
+      const fromIdx = devs.indexOf(Math.max(...devs));
+      moved = (fromIdx!==maxIdx) ? tryMoveOneUnit(fromIdx, maxIdx) : false;
+    }
+    if(!moved) break; // không còn cách chuyển nào khả thi theo cấu hình điểm/câu hiện tại
+  }
+
+  // Kiểm tra lại lần cuối, cảnh báo nếu vẫn còn chủ đề lệch quá 0,25đ (do điểm/câu quá thô, không chia đều được)
+  const finalDevs = state.topics.map((t,i)=> diemDaPhanBoTopic(t) - targets[i]);
+  const tooMuch = finalDevs.some(d=>Math.abs(d)>TOLERANCE);
+
+  render();
+  toast(tooMuch
+    ? "Đã phân bổ, nhưng có chủ đề vẫn lệch >0,25đ vì điểm/câu hiện tại quá thô (xem bảng bên dưới) — thầy nên giảm điểm/câu (vd. tăng tổng số câu) để chia mịn hơn."
+    : "Đã tự động phân bổ — tất cả chủ đề lệch ≤ 0,25đ so với điểm gợi ý theo số tiết.");
+}
+
+function tongTietHoc(){ return state.topics.reduce((s,t)=>s+(+t.tietHoc||0),0); }
+function diemDaPhanBoTopic(t){
+  let s=0;
+  LEVELS.forEach(l=>state.formats.forEach(f=>{ s += (t.levels[l].alloc[f.id]||0)*diemMoiCauThuc(f); }));
+  return s;
+}
+function insertVerb(ti, level, verb){
+  const cur = state.topics[ti].levels[level].yccd;
+  const sep = cur && !cur.trim().endsWith('\n') ? '\n' : '';
+  state.topics[ti].levels[level].yccd = cur + sep + '- ' + verb + ' ...';
+  render();
+}
+
+function viewTopics(){
+  const tongTiet = tongTietHoc();
+  const total = tongDiemDe();
+  let html = `<div class="card"><h2>Chủ đề / Mạch nội dung & Phân bổ số câu</h2>
+  <p class="muted" style="margin-bottom:10px;">Nhập <b>Số tiết</b> của mỗi chủ đề và Yêu cầu cần đạt, sau đó bấm <b>"Tự động phân bổ số câu"</b> — app sẽ tự tính số câu cho từng mức độ/hình thức dựa theo tỉ lệ số tiết và tỉ lệ Biết/Hiểu/Vận dụng đã đặt ở tab Thiết lập. Thầy vẫn có thể chỉnh tay từng ô sau khi tự động phân bổ.</p>
+  <div class="flex" style="margin-bottom:14px;"><button class="primary" onclick="autoAllocate()">⚡ Tự động phân bổ số câu theo tiết & tỉ lệ</button></div>`;
+  state.topics.forEach((t,ti)=>{
+    const pctTiet = tongTiet? fmt((+t.tietHoc||0)/tongTiet*100) : 0;
+    const goiYDiem = total? fmt(total*pctTiet/100) : 0;
+    const daPhanBo = fmt(diemDaPhanBoTopic(t));
+    const lech = fmt(daPhanBo - goiYDiem);
+    const ok = Math.abs(lech) <= 0.25;
+    html += `<div class="topic-block">
+      <div class="topic-head">
+        <input type="text" value="${esc(t.name)}" oninput="state.topics[${ti}].name=this.value" style="flex:2">
+        <label style="display:flex;align-items:center;gap:6px;font-size:.74rem;color:var(--muted);white-space:nowrap;">Số tiết
+          <input type="number" min="0" step="0.5" value="${t.tietHoc}" style="width:60px" oninput="state.topics[${ti}].tietHoc=+this.value;render()">
+        </label>
+        <button class="small danger" onclick="removeTopic(${ti})">Xóa chủ đề</button>
+      </div>
+      <textarea placeholder="Nội dung/đơn vị kiến thức (VD: tên các bài học thuộc chủ đề này — mỗi bài 1 dòng)" style="margin-bottom:8px;" oninput="state.topics[${ti}].noiDung=this.value">${esc(t.noiDung||'')}</textarea>
+      <div class="flex between" style="margin-bottom:10px;font-size:.74rem;">
+        <span class="muted">Tỉ lệ tiết: <b>${pctTiet}%</b> · Gợi ý điểm theo tiết: <b>${goiYDiem}đ</b> · Đã phân bổ: <b>${daPhanBo}đ</b></span>
+        <span class="pill ${ok?'ok':'bad'}">${ok?'Phù hợp số tiết':'Lệch '+(lech>0?'+':'')+lech+'đ so với gợi ý'}</span>
+      </div>`;
+    LEVELS.forEach(l=>{
+      html += `<div class="level-row">
+        <div class="level-tag tag-${l}">${LEVEL_LABEL[l]}</div>
+        <div>
+          <div class="alloc-row" style="margin-bottom:4px;">
+            ${LEVEL_VERBS[l].map(v=>`<button class="small" style="font-size:.68rem;padding:3px 7px;" onclick="insertVerb(${ti},'${l}','${v}')">+ ${v}</button>`).join('')}
+          </div>
+          <textarea placeholder="Yêu cầu cần đạt (${LEVEL_LABEL[l]}) — theo CTGDPT 2018..." oninput="state.topics[${ti}].levels.${l}.yccd=this.value">${esc(t.levels[l].yccd)}</textarea>
+          <div class="alloc-row">`;
+      state.formats.forEach(f=>{
+        const allowed = f.choLevels.includes(l);
+        const val = t.levels[l].alloc[f.id]||0;
+        html += `<div class="alloc-cell"><span>${esc(f.name)}</span>
+          <input type="number" min="0" value="${val}" ${allowed?'':'disabled'}
+            oninput="setAlloc(${ti},'${l}','${f.id}',this.value)"></div>`;
+      });
+      html += `</div></div></div>`;
+    });
+    html += `</div>`;
+  });
+  html += `<button onclick="addTopic()">+ Thêm chủ đề</button></div>`;
+
+  // bảng tỉ lệ số tiết -> gợi ý điểm
+  html += `<div class="card"><h2>Phân bổ điểm theo số tiết</h2><table><thead><tr>
+    <th>Chủ đề</th><th>Số tiết</th><th>Tỉ lệ %</th><th>Gợi ý điểm</th><th>Đã phân bổ</th><th>Trạng thái</th>
+  </tr></thead><tbody>`;
+  state.topics.forEach(t=>{
+    const pctTiet = tongTiet? fmt((+t.tietHoc||0)/tongTiet*100) : 0;
+    const goiYDiem = total? fmt(total*pctTiet/100) : 0;
+    const daPhanBo = fmt(diemDaPhanBoTopic(t));
+    const lech = fmt(daPhanBo - goiYDiem);
+    const ok = Math.abs(lech) <= 0.25;
+    html += `<tr><td class="left">${esc(t.name)}</td><td>${t.tietHoc}</td><td>${pctTiet}%</td><td>${goiYDiem}đ</td><td>${daPhanBo}đ</td>
+      <td><span class="pill ${ok?'ok':'bad'}">${ok?'Phù hợp':'Lệch '+(lech>0?'+':'')+lech+'đ'}</span></td></tr>`;
+  });
+  html += `<tr style="font-weight:700;background:var(--panel2);"><td class="left">Tổng</td><td>${tongTiet}</td><td>100%</td><td>${total}đ</td><td>${fmt(state.topics.reduce((s,t)=>s+diemDaPhanBoTopic(t),0))}đ</td><td></td></tr>`;
+  html += `</tbody></table></div>`;
+
+  // tổng kiểm tra
+  html += `<div class="card"><h2>Kiểm tra tổng số câu & tỉ lệ mức độ</h2><table><thead><tr><th>Hình thức</th><th>Mục tiêu (câu)</th><th>Đã phân bổ</th><th>Trạng thái</th></tr></thead><tbody>`;
+  state.formats.forEach(f=>{
+    const da = sumAllocForFormat(f.id);
+    const ok = da===f.tongSoCau;
+    html += `<tr><td class="left">${esc(f.name)}</td><td>${f.tongSoCau}</td><td>${da}</td>
+      <td><span class="pill ${ok?'ok':'bad'}">${ok?'Khớp':'Lệch '+(da-f.tongSoCau)}</span></td></tr>`;
+  });
+  html += `</tbody></table>`;
+  const dNB=fmt(sumDiemForLevel('NB')), dTH=fmt(sumDiemForLevel('TH')), dVD=fmt(sumDiemForLevel('VD'));
+  const pNB = total?fmt(dNB/total*100):0, pTH=total?fmt(dTH/total*100):0, pVD=total?fmt(dVD/total*100):0;
+  html += `<table style="margin-top:10px;"><thead><tr><th>Mức độ</th><th>Điểm</th><th>% thực tế</th><th>% mục tiêu</th><th>Trạng thái</th></tr></thead><tbody>
+    ${rowCheck('Biết',dNB,pNB,state.info.tyLeNB)}
+    ${rowCheck('Hiểu',dTH,pTH,state.info.tyLeTH)}
+    ${rowCheck('Vận dụng',dVD,pVD,state.info.tyLeVD)}
+  </tbody></table></div>`;
+  return html;
+}
+function rowCheck(label,diem,pct,target){
+  const ok = Math.abs(pct-target)<=2;
+  return `<tr><td class="left">${label}</td><td>${diem}</td><td>${pct}%</td><td>${target}%</td>
+    <td><span class="pill ${ok?'ok':'bad'}">${ok?'Đạt':'Chưa khớp'}</span></td></tr>`;
+}
+function setAlloc(ti,level,fid,val){
+  state.topics[ti].levels[level].alloc[fid] = Math.max(0, parseInt(val)||0);
+  render();
+}
+function addTopic(){
+  const id = "t"+Date.now();
+  state.topics.push({id, name:"Chủ đề mới", noiDung:"", tietHoc:1, levels:{
+    NB:{yccd:"",alloc:{}}, TH:{yccd:"",alloc:{}}, VD:{yccd:"",alloc:{}}
+  }});
+  render();
+}
+function removeTopic(ti){
+  if(!confirm("Xóa chủ đề này?")) return;
+  state.topics.splice(ti,1); render();
+}
+
+/* ---------------- TAB 3: MA TRẬN ---------------- */
+function viewMatrix(){
+  const groups = [
+    {key:"TNKQ", label:"TNKQ", formats: state.formats.filter(f=>f.group==="TNKQ")},
+    {key:"TL", label:"Tự luận", formats: state.formats.filter(f=>f.group==="TL")}
+  ].filter(g=>g.formats.length>0);
+
+  let html = `<div class="card"><h2>MA TRẬN ĐỀ KIỂM TRA ĐỊNH KÌ — ${esc(state.info.ten).toUpperCase()}</h2>
+  <p class="muted">Môn: ${esc(state.info.mon)} · Lớp ${esc(state.info.lop)} · ${esc(state.info.thoiGian)} · (theo mẫu Phụ lục CV 7991/BGDĐT-GDTrH)</p>
+  <table><thead>
+  <tr>
+    <th rowspan="3">TT</th>
+    <th rowspan="3">Chủ đề/<br>Chương</th>
+    <th rowspan="3">Nội dung/<br>đơn vị kiến thức</th>
+    ${groups.map(g=>`<th colspan="${g.formats.length*3}">${g.label}</th>`).join('')}
+    <th colspan="3">Tổng</th>
+    <th rowspan="3">Tỉ lệ<br>% điểm</th>
+  </tr>
+  <tr>
+    ${groups.map(g=>g.formats.map(f=>`<th colspan="3">${esc(f.name)}</th>`).join('')).join('')}
+    <th rowspan="2">Số câu</th><th rowspan="2">Điểm</th><th rowspan="2">&nbsp;</th>
+  </tr>
+  <tr>
+    ${groups.map(g=>g.formats.map(()=>LEVELS.map(l=>`<th>${LEVEL_LABEL[l]}</th>`).join('')).join('')).join('')}
+  </tr>
+  </thead><tbody>`;
+
+  const total = tongDiemDe();
+  let grand = {}; // per format per level cau count
+  groups.forEach(g=>g.formats.forEach(f=>{ grand[f.id]={}; LEVELS.forEach(l=>grand[f.id][l]=0); }));
+  let grandCauAll=0, grandDiemAll=0;
+
+  state.topics.forEach((t,ti)=>{
+    let rowCau=0, rowDiem=0, cells='';
+    groups.forEach(g=>g.formats.forEach(f=>{
+      LEVELS.forEach(l=>{
+        const n = t.levels[l].alloc[f.id]||0;
+        rowCau+=n; rowDiem+=n*diemMoiCauThuc(f);
+        grand[f.id][l]+=n;
+        cells += `<td>${n||''}</td>`;
+      });
+    }));
+    grandCauAll+=rowCau; grandDiemAll+=rowDiem;
+    html += `<tr><td>${ti+1}</td><td class="left">${esc(t.name)}</td><td class="left" style="font-size:.72rem;">${esc(t.noiDung||'').replace(/\n/g,'<br>')||'<span class="muted">(chưa nhập)</span>'}</td>${cells}<td><b>${rowCau}</b></td><td><b>${fmt(rowDiem)}</b></td><td></td><td>${total?fmt(rowDiem/total*100):0}%</td></tr>`;
+  });
+
+  // Tổng số câu row
+  html += `<tr style="background:var(--panel2);font-weight:700;"><td colspan="3" class="left">Tổng số câu</td>`;
+  groups.forEach(g=>g.formats.forEach(f=>{
+    LEVELS.forEach(l=>{ html += `<td>${grand[f.id][l]}</td>`; });
+  }));
+  html += `<td>${grandCauAll}</td><td></td><td></td><td></td></tr>`;
+
+  // Tổng số điểm row (per format-level column) + overall
+  html += `<tr style="background:var(--panel2);font-weight:700;"><td colspan="3" class="left">Tổng số điểm</td>`;
+  let levelDiemTotals={NB:0,TH:0,VD:0};
+  groups.forEach(g=>g.formats.forEach(f=>{
+    LEVELS.forEach(l=>{
+      const d = fmt(grand[f.id][l]*diemMoiCauThuc(f));
+      levelDiemTotals[l]+=d;
+      html += `<td>${d||''}</td>`;
+    });
+  }));
+  html += `<td>${grandCauAll}</td><td>${fmt(grandDiemAll)}</td><td></td><td>100%</td></tr>`;
+
+  // Tỉ lệ % row (theo mức độ, gộp tất cả hình thức)
+  html += `<tr style="background:var(--panel2);font-weight:700;"><td colspan="3" class="left">Tỉ lệ %</td>`;
+  groups.forEach(g=>g.formats.forEach(f=>{
+    LEVELS.forEach(l=>{
+      const d = fmt(grand[f.id][l]*diemMoiCauThuc(f));
+      const p = total?fmt(d/total*100):0;
+      html += `<td>${p||''}</td>`;
+    });
+  }));
+  html += `<td></td><td></td><td></td><td>100</td></tr>`;
+  html += `</tbody></table>`;
+
+  html += `<p class="muted" style="margin-top:10px;font-size:.78rem;">Tỉ lệ theo mức độ (gộp các hình thức): Biết ${total?fmt(levelDiemTotals.NB/total*100):0}% · Hiểu ${total?fmt(levelDiemTotals.TH/total*100):0}% · Vận dụng ${total?fmt(levelDiemTotals.VD/total*100):0}% — mục tiêu Biết ${state.info.tyLeNB}% / Hiểu ${state.info.tyLeTH}% / Vận dụng ${state.info.tyLeVD}%.</p>
+  </div>`;
+  return html;
+}
+
+/* ---------------- TAB 4: ĐẶC TẢ ---------------- */
+function viewSpec(){
+  const groups = [
+    {key:"TNKQ", label:"TNKQ", formats: state.formats.filter(f=>f.group==="TNKQ")},
+    {key:"TL", label:"Tự luận", formats: state.formats.filter(f=>f.group==="TL")}
+  ].filter(g=>g.formats.length>0);
+
+  let html = `<div class="card"><h2>BẢN ĐẶC TẢ ĐỀ KIỂM TRA ĐỊNH KÌ — ${esc(state.info.ten).toUpperCase()}</h2>
+  <table><thead>
+  <tr>
+    <th rowspan="2">TT</th>
+    <th rowspan="2">Chủ đề/<br>Chương</th>
+    <th rowspan="2">Nội dung/<br>đơn vị kiến thức</th>
+    <th rowspan="2" style="width:26%">Yêu cầu cần đạt</th>
+    ${groups.map(g=>`<th colspan="${g.formats.length*3}">${g.label}</th>`).join('')}
+  </tr>
+  <tr>
+    ${groups.map(g=>g.formats.map(f=>LEVELS.map(l=>`<th style="font-size:.62rem">${esc(f.name).split(' ')[0]}<br>${LEVEL_LABEL[l]}</th>`).join('')).join('')).join('')}
+  </tr>
+  </thead><tbody>`;
+
+  let grand = {}; groups.forEach(g=>g.formats.forEach(f=>{ grand[f.id]={}; LEVELS.forEach(l=>grand[f.id][l]=0); }));
+
+  state.topics.forEach((t,ti)=>{
+    const yccdHtml = LEVELS.map(l=>{
+      const txt = t.levels[l].yccd;
+      if(!txt) return '';
+      return `<div style="margin-bottom:4px;"><b>- ${LEVEL_LABEL[l]}:</b><br>${esc(txt).replace(/\n/g,'<br>')}</div>`;
+    }).join('');
+    let cells = '';
+    groups.forEach(g=>g.formats.forEach(f=>{
+      LEVELS.forEach(l=>{
+        const n = t.levels[l].alloc[f.id]||0;
+        grand[f.id][l]+=n;
+        cells += `<td>${n||''}</td>`;
+      });
+    }));
+    html += `<tr><td>${ti+1}</td><td class="left">${esc(t.name)}</td><td class="left" style="font-size:.72rem;">${esc(t.noiDung||'').replace(/\n/g,'<br>')||'<span class="muted">(chưa nhập)</span>'}</td><td class="left">${yccdHtml||'<span class="muted">(chưa nhập)</span>'}</td>${cells}</tr>`;
+  });
+
+  html += `<tr style="background:var(--panel2);font-weight:700;"><td colspan="4" class="left">Tổng số câu</td>`;
+  groups.forEach(g=>g.formats.forEach(f=>{
+    LEVELS.forEach(l=>{ html += `<td>${grand[f.id][l]}</td>`; });
+  }));
+  html += `</tr>`;
+
+  const total = tongDiemDe();
+  html += `<tr style="background:var(--panel2);font-weight:700;"><td colspan="4" class="left">Tổng số điểm</td>`;
+  groups.forEach(g=>g.formats.forEach(f=>{
+    LEVELS.forEach(l=>{ html += `<td>${fmt(grand[f.id][l]*diemMoiCauThuc(f))}</td>`; });
+  }));
+  html += `</tr>`;
+
+  html += `<tr style="background:var(--panel2);font-weight:700;"><td colspan="4" class="left">Tỉ lệ %</td>`;
+  groups.forEach(g=>g.formats.forEach(f=>{
+    LEVELS.forEach(l=>{ const d=grand[f.id][l]*diemMoiCauThuc(f); html += `<td>${total?fmt(d/total*100):0}</td>`; });
+  }));
+  html += `</tr>`;
+
+  html += `</tbody></table></div>`;
+  return html;
+}
+
+/* ---------------- TAB 5: ĐỀ THI ---------------- */
+function viewExam(){
+  let html = `<div class="card"><h2>ĐỀ THI — ${esc(state.info.ten).toUpperCase()}</h2>
+  <p class="muted">Mỗi ô dưới đây tương ứng 1 câu hỏi cần soạn nội dung, theo đúng chủ đề và mức độ đã phân bổ. Bấm 🤖 để AI soạn tự động (cả nội dung lẫn đáp án).</p>
+  <div class="flex no-print" style="margin-top:8px;">
+    <button class="primary" onclick="aiGenAll(true)">🤖 AI soạn các câu còn trống</button>
+    <button onclick="aiGenAll(false)">🤖 AI soạn lại toàn bộ</button>
+    <button class="primary" onclick="exportExamWord()">📄 Xuất Word (Đề thi)</button>
+  </div></div>`;
+  state.formats.forEach(f=>{
+    html += `<div class="card"><h2>${esc(f.name)} <span class="muted" style="font-size:.75rem;">(${fmt(diemMoiCau(f))} điểm/${f.kind==='dung_sai'?'ý':'câu'})</span></h2>`;
+    let qIndex=1;
+    state.topics.forEach(t=>{
+      LEVELS.forEach(l=>{
+        const n = t.levels[l].alloc[f.id]||0;
+        for(let k=0;k<n;k++){
+          const key = `${t.id}|${l}|${f.id}|${k}`;
+          const q = state.questions[key] || {noidung:"", dapan:""};
+          html += `<div class="qslot">
+            <div class="meta flex between"><span>Câu ${qIndex++} · ${esc(t.name)} · ${LEVEL_LABEL[l]}</span><button class="small no-print" onclick="aiGenOne('${key}')">🤖 Soạn</button></div>
+            <textarea placeholder="Nội dung câu hỏi${f.kind==='dung_sai'?' (gồm '+f.soYMoiCau+' ý a,b,c,d...)':''}" oninput="setQuestion('${key}','noidung',this.value)">${esc(q.noidung)}</textarea>
+          </div>`;
+        }
+      });
+    });
+    html += `</div>`;
+  });
+  return html;
+}
+function setQuestion(key, field, val){
+  if(!state.questions[key]) state.questions[key]={noidung:"",dapan:""};
+  state.questions[key][field]=val;
+}
+
+/* ---------------- XUẤT WORD (.doc) ---------------- */
+function escBr(s){ return esc(s).replace(/\r?\n/g,'<br>'); }
+function buildExamWordBody(){
+  const i = state.info;
+  let html = `<h1 style="text-align:center;">${esc(i.ten).toUpperCase()}</h1>
+  <p style="text-align:center;"><i>Môn: ${esc(i.mon)} — Lớp: ${esc(i.lop)} — Thời gian: ${esc(i.thoiGian)}</i></p>`;
+  state.formats.forEach(f=>{
+    html += `<h2>${esc(f.name)} (${fmt(f.tongDiem)} điểm)</h2>`;
+    let qIndex=1;
+    state.topics.forEach(t=>{
+      LEVELS.forEach(l=>{
+        const n = t.levels[l].alloc[f.id]||0;
+        for(let k=0;k<n;k++){
+          const key = `${t.id}|${l}|${f.id}|${k}`;
+          const q = state.questions[key] || {noidung:"",dapan:""};
+          html += `<p><b>Câu ${qIndex++}.</b> ${escBr(q.noidung) || '<i>(chưa soạn)</i>'}</p>`;
+        }
+      });
+    });
+  });
+  return html;
+}
+function buildAnswerWordBody(){
+  let html = `<h1 style="text-align:center;">ĐÁP ÁN — ${esc(state.info.ten).toUpperCase()}</h1>`;
+  state.formats.forEach(f=>{
+    html += `<h2>${esc(f.name)}</h2>`;
+    let qIndex=1;
+    state.topics.forEach(t=>{
+      LEVELS.forEach(l=>{
+        const n = t.levels[l].alloc[f.id]||0;
+        for(let k=0;k<n;k++){
+          const key = `${t.id}|${l}|${f.id}|${k}`;
+          const q = state.questions[key] || {noidung:"",dapan:""};
+          html += `<p><b>Câu ${qIndex++}.</b> ${escBr(q.dapan) || '<i>(chưa có)</i>'}</p>`;
+        }
+      });
+    });
+  });
+  return html;
+}
+/* ================= XUẤT FILE .DOCX THẬT (Office Open XML) ================= */
+/* Viết tay ZIP (STORE, không nén) + XML tối giản để Word mở không báo lỗi định dạng,
+   thay cho thủ thuật HTML giả .doc trước đây (Word hay báo "định dạng không khớp"). */
+function escXml(s){ return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function crc32(buf){
+  if(!crc32.table){
+    const t=[];
+    for(let n=0;n<256;n++){
+      let c=n;
+      for(let k=0;k<8;k++){ c = (c&1) ? (0xEDB88320 ^ (c>>>1)) : (c>>>1); }
+      t[n]=c>>>0;
+    }
+    crc32.table=t;
+  }
+  let crc = 0xFFFFFFFF;
+  for(let i=0;i<buf.length;i++) crc = (crc>>>8) ^ crc32.table[(crc ^ buf[i]) & 0xFF];
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+function makeZipBlob(files){
+  const encoder = new TextEncoder();
+  const localParts = [], centralParts = [];
+  let offset = 0;
+  const now = new Date();
+  const dosTime = ((now.getHours()<<11)|(now.getMinutes()<<5)|((now.getSeconds()/2)|0)) & 0xFFFF;
+  const dosDate = (((now.getFullYear()-1980)<<9)|((now.getMonth()+1)<<5)|now.getDate()) & 0xFFFF;
+  files.forEach(f=>{
+    const nameBytes = encoder.encode(f.name);
+    const data = f.data instanceof Uint8Array ? f.data : encoder.encode(f.data);
+    const crc = crc32(data);
+    const size = data.length;
+    const local = new Uint8Array(30 + nameBytes.length);
+    const dv = new DataView(local.buffer);
+    dv.setUint32(0, 0x04034b50, true);
+    dv.setUint16(4, 20, true); dv.setUint16(6, 0, true); dv.setUint16(8, 0, true);
+    dv.setUint16(10, dosTime, true); dv.setUint16(12, dosDate, true);
+    dv.setUint32(14, crc, true); dv.setUint32(18, size, true); dv.setUint32(22, size, true);
+    dv.setUint16(26, nameBytes.length, true); dv.setUint16(28, 0, true);
+    local.set(nameBytes, 30);
+    localParts.push(local, data);
+    const central = new Uint8Array(46 + nameBytes.length);
+    const dvc = new DataView(central.buffer);
+    dvc.setUint32(0, 0x02014b50, true);
+    dvc.setUint16(4, 20, true); dvc.setUint16(6, 20, true); dvc.setUint16(8, 0, true); dvc.setUint16(10, 0, true);
+    dvc.setUint16(12, dosTime, true); dvc.setUint16(14, dosDate, true);
+    dvc.setUint32(16, crc, true); dvc.setUint32(20, size, true); dvc.setUint32(24, size, true);
+    dvc.setUint16(28, nameBytes.length, true); dvc.setUint16(30,0,true); dvc.setUint16(32,0,true);
+    dvc.setUint16(34,0,true); dvc.setUint16(36,0,true); dvc.setUint32(38,0,true);
+    dvc.setUint32(42, offset, true);
+    central.set(nameBytes, 46);
+    centralParts.push(central);
+    offset += local.length + data.length;
+  });
+  const centralStart = offset;
+  let centralSize = 0; centralParts.forEach(c=>centralSize+=c.length);
+  const end = new Uint8Array(22);
+  const dve = new DataView(end.buffer);
+  dve.setUint32(0, 0x06054b50, true);
+  dve.setUint16(8, files.length, true); dve.setUint16(10, files.length, true);
+  dve.setUint32(12, centralSize, true); dve.setUint32(16, centralStart, true);
+  return new Blob([...localParts, ...centralParts, end], {type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+}
+// Chuyển HTML tối giản (do chính app tạo ra: h1,h2,p,b,i,br,table/tr/td/th, div ngắt trang) sang OOXML
+function htmlToDocxXml(html){
+  const doc = new DOMParser().parseFromString('<div>'+html+'</div>', 'text/html');
+  let xml = '';
+  function runsOf(node){
+    let r = '';
+    node.childNodes.forEach(cn=>{
+      if(cn.nodeType===3){
+        const t = cn.textContent;
+        if(t.trim()!=='' || t.includes(' ')) r += `<w:r><w:t xml:space="preserve">${escXml(t)}</w:t></w:r>`;
+      } else if(cn.nodeType===1){
+        const tag = cn.tagName.toLowerCase();
+        if(tag==='br'){ r += `<w:r><w:br/></w:r>`; }
+        else if(tag==='b'||tag==='strong'){ r += `<w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">${escXml(cn.textContent)}</w:t></w:r>`; }
+        else if(tag==='i'||tag==='em'){ r += `<w:r><w:rPr><w:i/></w:rPr><w:t xml:space="preserve">${escXml(cn.textContent)}</w:t></w:r>`; }
+        else r += runsOf(cn);
+      }
+    });
+    return r;
+  }
+  function centerPr(node){
+    const style = node.getAttribute && (node.getAttribute('style')||'');
+    return style.includes('text-align:center') ? '<w:jc w:val="center"/>' : '';
+  }
+  // Dựng lưới bảng có tính đến rowspan/colspan rồi xuất OOXML với gridSpan/vMerge tương ứng,
+  // để số ô mỗi dòng luôn khớp nhau (tránh Word tự chèn cột lệch/viền đôi khi có ô gộp).
+  function tableToXml(tableNode){
+    const trList = Array.from(tableNode.querySelectorAll('tr'));
+    const occupancy = {}; // occupancy[r] = [{start,width}, ...] do rowspan từ dòng trước tràn xuống
+    const grid = [];
+    let maxCols = 0;
+    trList.forEach((tr, r)=>{
+      const cells = Array.from(tr.children).filter(c=>c.tagName==='TD'||c.tagName==='TH');
+      const occThisRow = occupancy[r] || [];
+      const rowCells = [];
+      let cursor = 0, cellIdx = 0;
+      while(cellIdx < cells.length || occThisRow.some(o=>o.start>=cursor)){
+        const occ = occThisRow.find(o=>o.start===cursor);
+        if(occ){
+          rowCells.push({isMerge:true, width:occ.width});
+          cursor += occ.width;
+          continue;
+        }
+        if(cellIdx>=cells.length) break;
+        const node = cells[cellIdx++];
+        const colspan = parseInt(node.getAttribute('colspan')||'1',10)||1;
+        const rowspan = parseInt(node.getAttribute('rowspan')||'1',10)||1;
+        rowCells.push({node, colspan, rowspan});
+        if(rowspan>1){
+          for(let rr=r+1; rr<r+rowspan; rr++){
+            occupancy[rr] = occupancy[rr] || [];
+            occupancy[rr].push({start:cursor, width:colspan});
+          }
+        }
+        cursor += colspan;
+      }
+      maxCols = Math.max(maxCols, cursor);
+      grid.push(rowCells);
+    });
+    let xml = `<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/><w:tblBorders><w:top w:val="single" w:sz="4"/><w:left w:val="single" w:sz="4"/><w:bottom w:val="single" w:sz="4"/><w:right w:val="single" w:sz="4"/><w:insideH w:val="single" w:sz="4"/><w:insideV w:val="single" w:sz="4"/></w:tblBorders></w:tblPr>`;
+    xml += '<w:tblGrid>' + Array(maxCols).fill('<w:gridCol/>').join('') + '</w:tblGrid>';
+    grid.forEach(rowCells=>{
+      xml += '<w:tr>';
+      rowCells.forEach(rc=>{
+        if(rc.isMerge){
+          xml += `<w:tc><w:tcPr>${rc.width>1?`<w:gridSpan w:val="${rc.width}"/>`:''}<w:vMerge/><w:tcW w:w="0" w:type="auto"/></w:tcPr><w:p/></w:tc>`;
+        } else {
+          const extra = (rc.colspan>1?`<w:gridSpan w:val="${rc.colspan}"/>`:'') + (rc.rowspan>1?`<w:vMerge w:val="restart"/>`:'');
+          xml += `<w:tc><w:tcPr>${extra}<w:tcW w:w="0" w:type="auto"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr>${runsOf(rc.node) || '<w:r><w:t></w:t></w:r>'}</w:p></w:tc>`;
+        }
+      });
+      xml += '</w:tr>';
+    });
+    xml += '</w:tbl>';
+    return xml;
+  }
+  function walk(node){
+    node.childNodes.forEach(cn=>{
+      if(cn.nodeType!==1) return;
+      const tag = cn.tagName.toLowerCase();
+      if(tag==='h1'){
+        xml += `<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="32"/></w:rPr><w:t xml:space="preserve">${escXml(cn.textContent)}</w:t></w:r></w:p>`;
+      } else if(tag==='h2'){
+        xml += `<w:p><w:pPr><w:spacing w:before="200"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="26"/></w:rPr><w:t xml:space="preserve">${escXml(cn.textContent)}</w:t></w:r></w:p>`;
+      } else if(tag==='p'){
+        xml += `<w:p><w:pPr>${centerPr(cn)}</w:pPr>${runsOf(cn) || '<w:r><w:t></w:t></w:r>'}</w:p>`;
+      } else if(tag==='table'){
+        xml += tableToXml(cn);
+      } else if(tag==='div'){
+        if((cn.getAttribute('style')||'').includes('page-break')) xml += `<w:p><w:r><w:br w:type="page"/></w:r></w:p>`;
+        walk(cn);
+      } else {
+        walk(cn);
+      }
+    });
+  }
+  walk(doc.body.firstChild);
+  return xml;
+}
+function exportWordDoc(bodyHtml, filename){
+  const bodyXml = htmlToDocxXml(bodyHtml);
+  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:body>
+<w:pPr><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="26"/></w:rPr></w:pPr>
+${bodyXml}
+<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134"/></w:sectPr>
+</w:body>
+</w:document>`;
+  const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="26"/></w:rPr></w:rPrDefault></w:docDefaults>
+</w:styles>`;
+  const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+</Types>`;
+  const rootRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+  const docRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`;
+  const blob = makeZipBlob([
+    {name:'[Content_Types].xml', data: contentTypes},
+    {name:'_rels/.rels', data: rootRels},
+    {name:'word/document.xml', data: documentXml},
+    {name:'word/styles.xml', data: stylesXml},
+    {name:'word/_rels/document.xml.rels', data: docRels}
+  ]);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (filename||'de_kiem_tra').replace(/\s+/g,'_') + '.docx';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('✓ Đã xuất file Word: ' + a.download);
+}
+function buildInfoWordBody(){
+  const i = state.info;
+  return `<h1>${esc(i.ten).toUpperCase()}</h1>
+  <p style="text-align:center;"><b>Môn:</b> ${esc(i.mon)} &nbsp;&nbsp; <b>Lớp:</b> ${esc(i.lop)} &nbsp;&nbsp; <b>Thời gian:</b> ${esc(i.thoiGian)} &nbsp;&nbsp; <b>Loại đề:</b> ${esc(i.loai)}</p>
+  <p style="text-align:center;">Tỉ lệ mức độ mục tiêu: Biết ${i.tyLeNB}% — Hiểu ${i.tyLeTH}% — Vận dụng ${i.tyLeVD}% &nbsp;|&nbsp; Tổng điểm: ${tongDiemDe()} điểm</p>`;
+}
+function exportAllWord(){
+  const pageBreak = `<div style="page-break-before:always;"></div>`;
+  const body =
+    buildInfoWordBody() + pageBreak +
+    viewMatrix() + pageBreak +
+    viewSpec() + pageBreak +
+    buildExamWordBody() + pageBreak +
+    buildAnswerWordBody();
+  exportWordDoc(body, 'Bo_de_day_du_' + (state.info.ten || 'de'));
+}
+function exportExamWord(){ exportWordDoc(buildExamWordBody(), 'De_kiem_tra_'+(state.info.ten||'de')); }
+function exportAnswerWord(){ exportWordDoc(buildAnswerWordBody(), 'Dap_an_'+(state.info.ten||'de')); }
+
+/* ---------------- AI: SOẠN CÂU HỎI + ĐÁP ÁN ---------------- */
+function getCtx(key){
+  const [tid,l,fid,kStr] = key.split('|');
+  return {
+    key,
+    topic: state.topics.find(t=>t.id===tid),
+    level: l,
+    format: state.formats.find(f=>f.id===fid),
+    k: +kStr
+  };
+}
+// Chỉ số thứ tự của câu hỏi này trong toàn bộ chủ đề+mức độ (gộp mọi hình thức câu hỏi),
+// dùng để chia đều các câu hỏi cho từng Yêu cầu cần đạt theo kiểu xoay vòng (round-robin).
+function globalQIndexInTopicLevel(topic, level, format, k){
+  let idx = 0;
+  for(const f of state.formats){
+    if(f.id === format.id) break;
+    idx += (topic.levels[level].alloc[f.id] || 0);
+  }
+  return idx + k;
+}
+function hashStr(s){ let h=0; for(let i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))|0; } return h>>>0; }
+function mulberry32(seed){
+  return function(){
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+// Tạo dãy đáp án đúng A/B/C/D cho toàn bộ câu của 1 hình thức trắc nghiệm trong đề:
+// số lượng mỗi chữ cái gần bằng nhau (cân bằng), nhưng THỨ TỰ được xáo trộn ngẫu nhiên
+// (có seed cố định theo đề nên load lại vẫn ra cùng 1 dãy, không đổi lung tung mỗi lần soạn).
+function balancedShuffledLetters(format){
+  let total = 0;
+  state.topics.forEach(t=> LEVELS.forEach(l=> total += (t.levels[l].alloc[format.id]||0) ));
+  if(total===0) return [];
+  const letters = ['A','B','C','D'];
+  const base = Math.floor(total/4), rem = total%4;
+  const counts = {A:base,B:base,C:base,D:base};
+  const rngRem = mulberry32(hashStr(format.id+'|rem|'+total+'|'+(state.info.ten||'')));
+  const remLetters = [...letters];
+  for(let i=remLetters.length-1;i>0;i--){ const j=Math.floor(rngRem()*(i+1)); [remLetters[i],remLetters[j]]=[remLetters[j],remLetters[i]]; }
+  for(let i=0;i<rem;i++) counts[remLetters[i]]++;
+  const arr = [];
+  letters.forEach(l=>{ for(let i=0;i<counts[l];i++) arr.push(l); });
+  const rngShuf = mulberry32(hashStr(format.id+'|shuf|'+total+'|'+(state.info.ten||'')));
+  for(let i=arr.length-1;i>0;i--){ const j=Math.floor(rngShuf()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
+  return arr;
+}
+// Chỉ số thứ tự của câu hỏi này trong TOÀN BỘ đề, tính riêng theo 1 hình thức câu hỏi cụ thể
+// (gộp mọi chủ đề/mức độ), dùng để xoay đều đáp án đúng A/B/C/D.
+function globalIndexInFormat(format, topic, level, k){
+  let idx = 0;
+  for(const t of state.topics){
+    for(const l of LEVELS){
+      if(t.id===topic.id && l===level) return idx+k;
+      idx += (t.levels[l].alloc[format.id]||0);
+    }
+  }
+  return idx+k;
+}
+function buildAiPrompt(ctx){
+  const {topic, level, format, k, key} = ctx;
+  const yccdRaw = (topic.levels[level].yccd||'').trim();
+  const yccdLines = yccdRaw.split(/\n+/).map(s=>s.replace(/^[-•\s]+/,'').trim()).filter(Boolean);
+  let yccd, focusNote;
+  if(yccdLines.length === 0){
+    yccd = '(chưa có YCCĐ cụ thể — hãy tự xác định nội dung phù hợp với chủ đề và mức độ này)';
+    focusNote = '';
+  } else if(yccdLines.length === 1){
+    yccd = yccdLines[0];
+    focusNote = '';
+  } else {
+    const gIdx = globalQIndexInTopicLevel(topic, level, format, k);
+    const targetIdx = gIdx % yccdLines.length;
+    const targetLine = yccdLines[targetIdx];
+    yccd = yccdLines.map((l,i)=> (i===targetIdx ? `👉 ${l}` : l)).join('\n');
+    focusNote = `\nLƯU Ý QUAN TRỌNG: Chủ đề/mức độ này có NHIỀU yêu cầu cần đạt (liệt kê ở trên). Câu hỏi này PHẢI tập trung vào đúng yêu cầu cần đạt được đánh dấu 👉 ("${targetLine}") — KHÔNG soạn về các yêu cầu cần đạt khác trong danh sách, để tránh dồn nhiều câu vào cùng 1 yêu cầu cần đạt.`;
+  }
+
+  // Chống trùng lặp: liệt kê TẤT CẢ câu đã soạn trong CÙNG chủ đề + mức độ này (mọi hình thức,
+  // bất kể YCCĐ nào) để AI biết mà tránh hỏi lại ý tương tự — không chỉ giới hạn ở câu chung YCCĐ,
+  // vì thực tế AI vẫn có thể trùng ý dù được gán YCCĐ khác nhau.
+  const existingInTopicLevel = [];
+  state.formats.forEach(f=>{
+    const n = topic.levels[level].alloc[f.id]||0;
+    for(let kk=0; kk<n; kk++){
+      const otherKey = `${topic.id}|${level}|${f.id}|${kk}`;
+      if(otherKey === key) continue;
+      const existing = state.questions[otherKey];
+      if(existing && existing.noidung) existingInTopicLevel.push(existing.noidung.trim());
+    }
+  });
+  if(existingInTopicLevel.length){
+    const list = existingInTopicLevel.slice(0,20).map((q,i)=>`(${i+1}) ${q.slice(0,180)}`).join('\n');
+    focusNote += `\n\nTRONG CÙNG chủ đề "${topic.name}" mức độ "${LEVEL_LABEL[level]}", đề đã có ${existingInTopicLevel.length} câu hỏi khác:\n${list}\n\nCâu hỏi MỚI này BẮT BUỘC phải khác biệt rõ rệt so với TẤT CẢ các câu trên — không hỏi trùng khía cạnh/ý tưởng cốt lõi, dù có đổi số liệu hay cách diễn đạt. Đổi hẳn góc độ tiếp cận, bối cảnh, hoặc khía cạnh kiến thức khác của chủ đề. TUYỆT ĐỐI không tạo ra câu hỏi có bản chất giống các câu đã liệt kê ở trên (kể cả khi các phương án A/B/C/D được viết khác đi).`;
+  }
+  const lname = format.name.toLowerCase();
+  const diemCauNay = fmt(diemMoiCau(format));
+  let instr;
+  if(format.kind === 'dung_sai'){
+    instr = `Đây là câu hỏi dạng Đúng/Sai gồm ${format.soYMoiCau} ý nhỏ (a, b, c, d...), các ý có cả đúng lẫn sai (trộn lẫn, không theo khuôn mẫu cố định).
+BẮT BUỘC xây dựng theo DẠNG TÌNH HUỐNG: đưa ra 1 tình huống/bối cảnh thực tế cụ thể (thí nghiệm, hiện tượng, số liệu, câu chuyện...) làm phần dẫn chung, sau đó các ý a) b) c) d) là các nhận định/phát biểu liên quan đến tình huống đó để học sinh xác định đúng/sai — KHÔNG đưa ra các phát biểu rời rạc không có bối cảnh chung.
+QUAN TRỌNG về số lượng ý đúng/sai: KHÔNG được mặc định luôn là 2 đúng - 2 sai. Tỉ lệ đúng/sai giữa các ý phải NGẪU NHIÊN và đa dạng qua từng câu (có thể 1 đúng-3 sai, 3 đúng-1 sai, 2 đúng-2 sai, hoặc thậm chí cả 4 đều đúng/đều sai nếu hợp lý) — tự quyết định dựa trên nội dung, đừng theo khuôn mẫu cố định.
+Trả về:
+- "noidung": phần dẫn là tình huống cụ thể, rồi liệt kê từng ý a) b) c) d)... mỗi ý 1 dòng.
+- "dapan": ghi đúng/sai từng ý, ví dụ "a) Đúng  b) Sai  c) Đúng  d) Sai", kèm giải thích ngắn gọn từng ý vì sao đúng/sai (dựa vào tình huống đã nêu).`;
+  } else if(format.group === 'TL' || lname.includes('tự luận')){
+    instr = `Đây là câu hỏi Tự luận, tổng điểm câu này là ${diemCauNay} điểm.
+Trả về:
+- "noidung": đề bài tự luận rõ ràng, có thể kèm số liệu/tình huống thực tế để học sinh giải quyết, phù hợp mức độ ${LEVEL_LABEL[level]}.
+- "dapan": hướng dẫn chấm CHI TIẾT, BẮT BUỘC chia thành các Ý/BƯỚC nhỏ, mỗi ý ghi rõ số điểm thành phần (ví dụ "Ý 1: ... (0.5đ)", "Ý 2: ... (0.5đ)"...) — tổng điểm các ý thành phần PHẢI cộng lại ĐÚNG BẰNG ${diemCauNay} điểm, không được lệch.`;
+  } else if(lname.includes('lựa chọn') || lname.includes('trắc nghiệm')){
+    const shuffledLetters = balancedShuffledLetters(format);
+    const gIdxFmt = globalIndexInFormat(format, topic, level, k);
+    const targetLetter = shuffledLetters[gIdxFmt] || ['A','B','C','D'][gIdxFmt%4];
+    instr = `Đây là câu hỏi trắc nghiệm nhiều lựa chọn (4 phương án A. B. C. D., chỉ 1 đáp án đúng).
+BẮT BUỘC: đáp án ĐÚNG của câu này phải là phương án ${targetLetter} (không được là phương án khác). Quy định này nhằm đảm bảo trong toàn bộ đề, số lần đáp án đúng rơi vào A/B/C/D là gần bằng nhau, nhưng thứ tự xuất hiện đã được xáo trộn ngẫu nhiên (không theo mẫu A,B,C,D lặp lại tuần tự) — hãy soạn nội dung 4 phương án sao cho phương án ${targetLetter} là đáp án đúng một cách tự nhiên, hợp lý (không gượng ép/lộ liễu), 3 phương án còn lại là phương án nhiễu hợp lý.
+Trả về:
+- "noidung": câu hỏi kèm 4 phương án A. B. C. D. (phương án nhiễu hợp lý, không quá dễ đoán).
+- "dapan": ghi rõ đáp án đúng là "${targetLetter}", kèm giải thích ngắn gọn vì sao đúng và vì sao 3 phương án còn lại sai.`;
+  } else if(lname.includes('ngắn')){
+    instr = `Đây là câu hỏi Trả lời ngắn (học sinh tự điền 1 từ/số/cụm từ ngắn, KHÔNG đưa ra phương án sẵn).
+Trả về:
+- "noidung": câu hỏi yêu cầu điền 1 đáp án ngắn gọn (số liệu, từ khóa, công thức...).
+- "dapan": đáp án ngắn gọn, chính xác.`;
+  } else {
+    instr = `Trả về:
+- "noidung": nội dung câu hỏi phù hợp với hình thức "${format.name}".
+- "dapan": đáp án/hướng dẫn chấm tương ứng.`;
+  }
+  const noiDungRaw = (topic.noiDung||'').trim();
+  let scopeBlock;
+  if(noiDungRaw){
+    scopeBlock = `Nội dung/đơn vị kiến thức thuộc chủ đề này (đây là RANH GIỚI PHẠM VI bắt buộc, KHÔNG được hỏi ngoài các bài/nội dung liệt kê dưới đây):\n${noiDungRaw}`;
+  } else {
+    scopeBlock = `(Chưa nhập "Nội dung/đơn vị kiến thức" cụ thể — chỉ được suy ra phạm vi từ ĐÚNG tên chủ đề "${topic.name}" và YCCĐ nêu trên, KHÔNG được suy diễn sang bài/chủ đề khác dù có vẻ liên quan.)`;
+  }
+  return `Bạn là giáo viên ${state.info.mon} cấp THCS, soạn 1 câu hỏi kiểm tra cho đề "${state.info.ten}" (${state.info.mon} lớp ${state.info.lop}, ${state.info.loai}).
+Chủ đề: "${topic.name}".
+${scopeBlock}
+Mức độ nhận thức: ${LEVEL_LABEL[level]} (${level}).
+Yêu cầu cần đạt liên quan: ${yccd}${focusNote}
+Hình thức câu hỏi: "${format.name}".
+${instr}
+
+Nguyên tắc bắt buộc:
+- PHẠM VI KIẾN THỨC: câu hỏi PHẢI nằm ĐÚNG trong chủ đề "${topic.name}" và (nếu có) đúng các bài/nội dung đã liệt kê ở trên. TUYỆT ĐỐI KHÔNG được lấy kiến thức, khái niệm, hiện tượng hay ví dụ thuộc chủ đề/bài học KHÁC (kể cả khi trông có vẻ liên quan hoặc thường bị nhầm lẫn với chủ đề này — ví dụ chủ đề "Nguyên tử" thì KHÔNG được hỏi về chuyển động, lực, hay các mạch nội dung Vật lí/Sinh học khác không thuộc đúng chủ đề). Nếu phân vân, hãy chọn hướng AN TOÀN, bám sát nghĩa đen của tên chủ đề/YCCĐ, không mở rộng.
+- Câu dẫn ("noidung"): viết NGẮN GỌN, súc tích, đi thẳng vào vấn đề — không lặp từ, không thêm câu mở đầu/dẫn dắt thừa — nhưng vẫn phải chứa ĐẦY ĐỦ dữ kiện/thông tin cần thiết để học sinh làm bài (số liệu, điều kiện, ngữ cảnh nếu có).
+- Đáp án ("dapan"): phải ĐẦY ĐỦ Ý, không rút gọn/cắt xén — nêu rõ kết quả/đáp án đúng VÀ giải thích/lập luận đầy đủ theo yêu cầu ở trên, đủ để giáo viên chấm bài mà không cần suy đoán thêm.
+
+Chỉ trả về ĐÚNG theo định dạng sau, không thêm bất kỳ chữ nào khác, không dùng markdown/code fence:
+===NOIDUNG===
+(nội dung câu hỏi ở đây, có thể xuống dòng thoải mái)
+===DAPAN===
+(đáp án / hướng dẫn chấm ở đây, có thể xuống dòng thoải mái)`;
+}
+async function callClaudeForQuestion(prompt){
+  const apiKey = getApiKey();
+  if(!apiKey) throw new Error("Chưa nhập Gemini API key. Vào Tab 1 → nhập key miễn phí từ aistudio.google.com");
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.7, maxOutputTokens: 4096 }
+    })
+  });
+  if(!response.ok){
+    const err = await response.json().catch(()=>({}));
+    const msg = err?.error?.message || response.statusText;
+    if(response.status === 400 || response.status === 403)
+      throw new Error("API key không hợp lệ hoặc chưa bật quyền. Kiểm tra lại trong Tab 1. (" + msg + ")");
+    if(response.status === 404)
+      throw new Error("Model AI không tồn tại/đã ngừng hỗ trợ (404). (" + msg + ")");
+    if(response.status === 429){
+      const e = new Error("RATE_LIMIT");
+      e.isRateLimit = true;
+      throw e;
+    }
+    throw new Error("Lỗi Gemini API (" + response.status + "): " + msg);
+  }
+  const data = await response.json();
+  const cand = data?.candidates?.[0];
+  const text = cand?.content?.parts?.[0]?.text || '';
+  if(!text){
+    const reason = cand?.finishReason || 'không rõ';
+    throw new Error("AI không trả về nội dung (finishReason: " + reason + "). Có thể do bộ lọc an toàn — thử đổi lại nội dung/chủ đề.");
+  }
+  if(cand?.finishReason === 'MAX_TOKENS'){
+    const e = new Error("Nội dung bị cắt cụt do vượt giới hạn độ dài (MAX_TOKENS). Đang thử lại...");
+    e.isTruncated = true;
+    throw e;
+  }
+  // Parse theo delimiter ===NOIDUNG=== / ===DAPAN=== (không dùng JSON để tránh lỗi vỡ do xuống dòng trong chuỗi)
+  const clean = text.replace(/```[a-z]*|```/gi,'').trim();
+  const dIdx = clean.indexOf('===DAPAN===');
+  if(dIdx === -1){
+    // Không tìm thấy delimiter đáp án -> thử fallback JSON cũ (phòng trường hợp model vẫn trả JSON)
+    try{
+      const j = JSON.parse(clean);
+      if(j && (j.noidung || j.dapan)) return { noidung: j.noidung||'', dapan: j.dapan||'' };
+    }catch(e){/* bỏ qua */}
+    return { noidung: clean.replace('===NOIDUNG===','').trim(), dapan: '' };
+  }
+  let noidung = clean.slice(0, dIdx);
+  const nIdx = noidung.indexOf('===NOIDUNG===');
+  if(nIdx !== -1) noidung = noidung.slice(nIdx + '===NOIDUNG==='.length);
+  const dapan = clean.slice(dIdx + '===DAPAN==='.length);
+  return { noidung: noidung.trim(), dapan: dapan.trim() };
+}
+let aiGenerating = false;
+let activeKeyIndex = 0;
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+async function callWithRetry(prompt, maxAttempts){
+  maxAttempts = maxAttempts || (getApiKeys().length + 3);
+  const backoffs = [15000, 30000, 45000];
+  for(let attempt=0; attempt<maxAttempts; attempt++){
+    try{
+      return await callClaudeForQuestion(prompt);
+    }catch(e){
+      const isLast = attempt === maxAttempts-1;
+      if(e.isRateLimit){
+        if(rotateApiKey()){
+          toast("⚠ Key hiện tại hết hạn mức — tự chuyển sang key kế tiếp...");
+          continue; // thử ngay với key mới, không tính vào số lần chờ
+        }
+        if(!isLast){
+          await sleep(backoffs[attempt]||45000);
+          activeKeyIndex = 0; // hết key dự phòng, quay lại key đầu sau khi chờ
+          continue;
+        }
+        throw new Error("Đã vượt giới hạn miễn phí của Gemini (429) trên tất cả các key. Vui lòng đợi 1 phút hoặc thêm key mới rồi thử lại.");
+      }
+      if(e.isTruncated && !isLast){
+        await sleep(backoffs[attempt]||45000);
+        continue;
+      }
+      throw e;
+    }
+  }
+}
+async function aiGenOne(key){
+  if(aiGenerating){ toast("Đang soạn câu khác, vui lòng chờ..."); return; }
+  const ctx = getCtx(key);
+  if(!ctx.topic || !ctx.format){ toast("Lỗi: không tìm thấy chủ đề/hình thức tương ứng."); return; }
+  aiGenerating = true;
+  toast("🤖 Đang soạn câu hỏi...");
+  try{
+    const result = await callWithRetry(buildAiPrompt(ctx));
+    setQuestion(key,'noidung', result.noidung||'');
+    setQuestion(key,'dapan', result.dapan||'');
+    toast("✓ Đã soạn xong.");
+  }catch(e){
+    toast("Lỗi AI: "+e.message);
+  }finally{
+    aiGenerating = false;
+    render();
+  }
+}
+function collectAllKeys(){
+  const keys = [];
+  state.topics.forEach(t=>{
+    state.formats.forEach(f=>{
+      LEVELS.forEach(l=>{
+        const n = t.levels[l].alloc[f.id]||0;
+        for(let k=0;k<n;k++) keys.push(`${t.id}|${l}|${f.id}|${k}`);
+      });
+    });
+  });
+  return keys;
+}
+async function aiGenAll(onlyEmpty){
+  if(aiGenerating){ toast("Đang xử lý, vui lòng chờ..."); return; }
+  const keys = collectAllKeys().filter(key=>{
+    if(!onlyEmpty) return true;
+    const q = state.questions[key];
+    return !q || !q.noidung;
+  });
+  if(keys.length===0){ toast("Không có câu nào cần soạn."); return; }
+  if(!confirm(`Soạn tự động ${keys.length} câu (kèm đáp án) bằng AI?\nMất khoảng ${Math.ceil(keys.length*7/60)} phút (có độ trễ 7s/câu để tránh vượt giới hạn API), đừng tắt trang.`)) return;
+  aiGenerating = true;
+  let done=0, loi=0;
+  for(const key of keys){
+    const ctx = getCtx(key);
+    if(ctx.topic && ctx.format){
+      try{
+        const result = await callWithRetry(buildAiPrompt(ctx));
+        setQuestion(key,'noidung', result.noidung||'');
+        setQuestion(key,'dapan', result.dapan||'');
+      }catch(e){ loi++; }
+    }
+    done++;
+    toast(`🤖 Đã soạn ${done}/${keys.length} câu...`);
+    if(done < keys.length) await sleep(7000);
+  }
+  aiGenerating = false;
+  render();
+  toast(`✓ Hoàn tất: ${done} câu` + (loi?`, ${loi} câu lỗi (có thể thử soạn lại riêng)`:'') + '.');
+}
+
+/* ---------------- TAB 6: ĐÁP ÁN ---------------- */
+function viewAnswer(){
+  let html = `<div class="card"><h2>ĐÁP ÁN & HƯỚNG DẪN CHẤM — ${esc(state.info.ten).toUpperCase()}</h2>
+  <div class="flex no-print" style="margin-top:8px;">
+    <button class="primary" onclick="aiGenAll(true)">🤖 AI soạn các câu còn trống</button>
+    <button onclick="aiGenAll(false)">🤖 AI soạn lại toàn bộ</button>
+    <button class="primary" onclick="exportAnswerWord()">📄 Xuất Word (Đáp án)</button>
+  </div></div>`;
+  state.formats.forEach(f=>{
+    html += `<div class="card"><h2>${esc(f.name)}</h2>`;
+    let qIndex=1;
+    state.topics.forEach(t=>{
+      LEVELS.forEach(l=>{
+        const n = t.levels[l].alloc[f.id]||0;
+        for(let k=0;k<n;k++){
+          const key = `${t.id}|${l}|${f.id}|${k}`;
+          const q = state.questions[key] || {noidung:"", dapan:""};
+          const isTL = f.group === 'TL' || /tự luận/i.test(f.name);
+          html += `<div class="qslot">
+            <div class="meta flex between"><span>Câu ${qIndex++} · ${esc(t.name)} · ${LEVEL_LABEL[l]} · ${fmt(diemMoiCau(f))} điểm${f.kind==='dung_sai'?'/ý':''}</span><button class="small no-print" onclick="aiGenOne('${key}')">🤖 Soạn</button></div>
+            <textarea placeholder="${isTL?'Hướng dẫn chấm chi tiết theo từng ý...':'Đáp án đúng (VD: A, hoặc Đ-S-Đ-S, hoặc số điền)'}" oninput="setQuestion('${key}','dapan',this.value)">${esc(q.dapan)}</textarea>
+          </div>`;
+        }
+      });
+    });
+    html += `</div>`;
+  });
+  return html;
+}
+
+/* ---------------- UTIL ---------------- */
+function esc(s){ return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+</body>
+</html>
